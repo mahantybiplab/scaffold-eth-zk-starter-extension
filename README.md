@@ -1,5 +1,43 @@
+## Installation
 
-I assume you have already installed  [rust](https://www.rust-lang.org/tools/install) and [circom](https://docs.circom.io/getting-started/installation/) , ai will be very handy in it if you are facing problem in installing.
+```shell
+npx create-eth@latest -e mahantybiplab/scaffold-eth-zk-starter-extension
+```
+
+## Requirements
+
+Before you begin, you need to install the following tools:
+
+- Node (>= v20.18.3)
+- Yarn (v1 or v2+)
+- Git
+- Rust
+- Circom
+
+## Quickstart
+
+- Install dependencies
+
+```shell
+cd  scaffold-eth-zk-starter-kit
+yarn install
+```
+
+```shell
+
+// Run all the below commands from root directory
+
+yarn zk-pipeline <circuitName> //  <circuitName> is multiplier2
+
+yarn move-files <circuitName> //  <circuitName> is multiplier2
+
+yarn chain // run this if you have not started anvil
+
+yarn deploy --file DeployGroth16Verifier.s.sol  // to deploy Groth16Verifier smart contract 
+
+yarn start // to start the frontend 
+```
+Now interact with the frontend and enjoy  😁
 
 ## What is Zero-Knowledge Proof?
 
@@ -9,7 +47,7 @@ Instead, you want to **prove that you know it**.
 Zero-Knowledge Proofs (ZKPs) allow you to prove knowledge of something (like a password, a solution to a puzzle, or a computation) **without revealing the secret itself**.
 
 ZKPs shine in problems where _verification is easy_ but _finding the solution is hard_.
-One of such problem is to  prove a transaction is valid (you have enough balance and no double-spend) without revealing sender, receiver, or amount — this is how **Zcash enables private payments** on a public blockchain.
+One of such problem is to prove a transaction is valid (you have enough balance and no double-spend) without revealing sender, receiver, or amount — this is how **Zcash enables private payments** on a public blockchain.
 
 Btw, what are the characteristics of ZKPs ?
 
@@ -32,7 +70,7 @@ The proof reveals nothing beyond the fact that the statement is true.
 
 ⚡ In short: **ZKPs convince (completeness), can’t be cheated (soundness), and don’t leak secrets (zero-knowledge).**
 
-## Write ZKPs without  overwhelmed by it's underlying mathematics
+## Write ZKPs without overwhelmed by it's underlying mathematics
 
 At their core, ZKPs are proofs about **mathematical statements** — they rely on algebra (polynomials, modular arithmetic, elliptic curves) to create constraints that can be checked efficiently. Writing ZKPs in math ensures **rigor, security, and verifiability**, since computers can’t “trust” plain words, only precise mathematical rules.
 
@@ -40,7 +78,7 @@ Since not everyone is fond of mathematics, writing ZKPs directly in math can be 
 
 Circom helps us **design these proofs** as circuits.
 
-##  Writing circuits
+## Writing circuits
 
 From the above statements you may have understood that A **Zero-Knowledge Proof (ZKP)** is a cryptographic protocol where a _prover_ convinces a _verifier_ that a certain **computation** has been carried out correctly on some private input, without revealing that input itself.
 
@@ -59,28 +97,29 @@ The **witness** includes **all values** that flow through the circuit:
 1. **Private inputs** (known only to the prover).
 2. **Public inputs** (shared with the verifier).
 3. **Intermediate signals** (values computed inside the circuit).
+
 ### Constraints
 
 - **Constraints** are the **rules** that must always hold true inside the circuit.
 - They ensure the prover can’t cheat by plugging in random values.
 - Example: if the circuit says `a * b = c`, then the constraint forces the witness values of `a`, `b`, and `c` to actually satisfy that equation.
 
-
 In our `multiplier2.circom` :
+
 ```circom
 pragma circom 2.0.0;
 
-/*This circuit template checks that c is the multiplication of a and b.*/  
+/*This circuit template checks that c is the multiplication of a and b.*/
 
-template Multiplier2 () {  
+template Multiplier2 () {
 
-   // Declaration of signals.  
-   signal input a;  
-   signal input b;  
-   signal output c;  
+   // Declaration of signals.
+   signal input a;
+   signal input b;
+   signal output c;
 
-   // Constraints.  
-   c <== a * b;  
+   // Constraints.
+   c <== a * b;
 }
 
 component main = Multiplier2();
@@ -94,9 +133,9 @@ component main = Multiplier2();
 - `c <== a * b;` - this does two things: assigns the signal `c` a value _and_ constrains `c` to be equal to the product of `a` and `b`
 - `component main = Multiplier2()` - instantiates our main component
 
- A constraint in Circom can only use operations involving constants, addition or multiplication. It enforces that both sides of the equation must be equal.
+A constraint in Circom can only use operations involving constants, addition or multiplication. It enforces that both sides of the equation must be equal.
 
-## Some useful commands 
+## Some useful commands
 
 You have to run all of these commands from the `root directory`.
 
@@ -110,7 +149,7 @@ yarn generate-witness <circuitName>
 // to run the trusted setup
 yarn trusted-setup <circuitName>
 
-// to generate proof 
+// to generate proof
 yarn generate-proof <circuitName>
 
 // to verify proof
@@ -131,19 +170,19 @@ yarn circom-clean
 
 ```
 
-
 **Each of the commands above abstracts the full underlying commands shown in the sections below.**
+
 ## Compiling the circuit
 
 Now is time to compile the circuit to get a system of arithmetic equations representing it. As a result of the compilation we will also obtain programs to compute the witness. We can compile the circuit with the following command:
 
 ```bash
-circom multiplier2.circom --r1cs --wasm --sym 
+circom multiplier2.circom --r1cs --wasm --sym
 ```
 
 With these options we generate three types of files:
 
-- `--r1cs`: it generates the file `multiplier2.r1cs` that contains the `R1CS constraint system` (In this system, a constraint  can only use operations involving constants, addition or multiplication.) of the circuit in binary format.
+- `--r1cs`: it generates the file `multiplier2.r1cs` that contains the `R1CS constraint system` (In this system, a constraint can only use operations involving constants, addition or multiplication.) of the circuit in binary format.
 
 - `--wasm`: it generates the directory `multiplier2_js` that contains the `Wasm` code (multiplier2.wasm) and other files needed to generate the `witness` .
 
@@ -151,7 +190,8 @@ With these options we generate three types of files:
 
 We can use the option `-o` to specify the directory where these files are created.
 
-You will get an error if the file name is  `Multiplier2.circom` .
+You will get an error if the file name is `Multiplier2.circom` .
+
 ## Computing our witness
 
 Before creating the proof, we need to calculate all the `signals` (A **signal** is a variable that carries a value inside the circuit.) of the circuit that match all the constraints of the circuit. For that, we will use the `Wasm` module generated by`circom` that helps to do this job.
@@ -176,11 +216,9 @@ After calling the `circom` compiler with the flag `--wasm` and the circuit `mult
 
 ### Computing the witness with WebAssembly
 
-
 ```bash
 node ./multiplier2_js/generate_witness.js ./multiplier2_js/multiplier2.wasm input.json witness.wtns
 ```
-
 
 ## Proving circuits
 
@@ -194,32 +232,28 @@ Now, we will use the `snarkjs` tool to generate and validate a proof for our inp
 
 - Stands for **Zero-Knowledge Succinct Non-Interactive Argument of Knowledge**.
 - A ZK proof system that is:
-    
-    - **Succinct** → proofs are very small and quick to verify.
-    - **Non-interactive** → prover and verifier don’t need back-and-forth communication, just one proof.
-    - **Zero-Knowledge** → reveals nothing except validity.
-    - **Argument of Knowledge** → ensures the prover really knows the secret.
+  - **Succinct** → proofs are very small and quick to verify.
+  - **Non-interactive** → prover and verifier don’t need back-and-forth communication, just one proof.
+  - **Zero-Knowledge** → reveals nothing except validity.
+  - **Argument of Knowledge** → ensures the prover really knows the secret.
 
 👉 Used in systems like **Zcash** for private payments.
 
 #### 🔹 Groth16
 
 - A specific **zk-SNARK proving algorithm**, created in 2016.
-    
 - Known for being **highly efficient**:
-    
-    - Proofs are only about **200–300 bytes**.
-    - Verification takes only a few milliseconds.
+
+  - Proofs are only about **200–300 bytes**.
+  - Verification takes only a few milliseconds.
 
 - Limitation → requires a **trusted setup**.
-
 
 #### 🔹 Trusted Setup
 
 Some zk-SNARK protocols, like Groth16, need a special preparation step before they can be used. This step is called the _trusted setup_. In it, cryptographic keys are generated: a proving key for the prover and a verification key for the verifier. These keys make the protocol efficient and secure. The reason it’s called _trusted_ is that during setup, temporary secret randomness is created, and it must be destroyed afterwards — otherwise, someone could generate fake proofs. That’s why we need a trusted setup.
 
-
-We are going to use the Groth16  zk-SNARK protocol. To use this protocol, you will need to generate a trusted setup . **Groth16 requires a per circuit trusted setup**. In more detail, the trusted setup consists of 2 parts:
+We are going to use the Groth16 zk-SNARK protocol. To use this protocol, you will need to generate a trusted setup . **Groth16 requires a per circuit trusted setup**. In more detail, the trusted setup consists of 2 parts:
 
 - The powers of tau, which is independent of the circuit, it's a one time setup.
 - The phase 2, which depends on the circuit i.e. on changing the circuit we need to do it again.
@@ -279,7 +313,6 @@ This command generates a Groth16 proof and outputs two files:
 - `proof.json`: it contains the proof.
 - `public.json`: it contains the values of the public inputs and outputs.
 
-
 ## Verifying a Proof
 
 To **verify the proof**, execute the following command:
@@ -302,8 +335,7 @@ First, we need to generate the Solidity code using the command:
 snarkjs zkey export solidityverifier multiplier2_0001.zkey verifier.sol
 ```
 
-This command takes validation key `multiplier2_0001.zkey` and outputs Solidity code in a file named `verifier.sol`.  
-
+This command takes validation key `multiplier2_0001.zkey` and outputs Solidity code in a file named `verifier.sol`.
 
 The `Verifier` has a `view` function called `verifyProof` that returns `TRUE` if and only if the proof and the inputs are valid. To facilitate the call, you can use `snarkJS` to generate the parameters of the call by typing:
 
@@ -312,13 +344,15 @@ snarkjs generatecall
 ```
 
 The above command will produce something like this:
+
 ```bash
 ["0x2693554aeaa92915a78a06122a3f4783d1061d79cd04a13c84da854abdbeeb76", "0x04795913303a26dfe8f061ceb1043835e60148e244b7a66edccf31df90a112f5"],[["0x25ab17d36c3c229cdc5720706fd3f4f13ad49584db81d650d62683094f659e19", "0x27e163ec5c14433855e095351b5555a228e41db738fe1528ce6de0dd50801c03"],["0x031c594380f8e1616bf2941ef4c79be8689c49f5b5d6b7c52da460bb5825c9a2", "0x08885c116c8d0159fdaaefb8a0edfbce0d44d8cdbbd7907088e36754dad1319c"]],["0x121aba29364591f627a4d3a8a5f401451c35c6944fa54d61145a1f2eab0fc210", "0x093d77ab31633dfc47cf6f496136de1edd3185433ded102089d9fd050b0e7334"],["0x0000000000000000000000000000000000000000000000000000000000000021"]
 ```
 
-After deploying the contract , take the address of the contract and verify  if the proof and the inputs are valid using `foundry cast` . 
+After deploying the contract , take the address of the contract and verify if the proof and the inputs are valid using `foundry cast` .
 
 The command to do so will be like this:
+
 ```bash
 cast call <CONTRACT_ADDRESS> \
 --rpc-url http://127.0.0.1:8545 \
@@ -331,42 +365,24 @@ cast call <CONTRACT_ADDRESS> \
 
 If everything works fine, this method should return `TRUE`. You can try to change just a single bit of the parameters, and you will see that the result is verifiable `FALSE`.
 
-## Make Proof , Verify OffChain, Verify OnChain in frontend
-
-For simplicity we will work with  local anvil chain.
-
-```bash
-// Run all the below commands from root directory
-
-yarn zk-pipeline <circuitName> // if you have not run this command before
-
-yarn move-files <circuitName> // if you have not run this command before
-
-yarn chain // run this if you have not started anvil
-
-yarn deploy --file DeployGroth16Verifier.s.sol  // to deploy Groth16Verifier smart contract 
-
-yarn start // to start the frontend 
-```
-
-Now interact with the frontend and enjoy  😁
 
 ## Challenge for the braves
 
-**Can you create Circom constraints for inputs a and b such that neither can be 1 or 33?** 
+**Can you create Circom constraints for inputs a and b such that neither can be 1 or 33?**
 Let me know if you can solve this challenge, or I'll provide the solution! 😁
+
 ## Conclusion
 
-At a high level, you now understand how to use Circom to create circuits for zero-knowledge proofs (ZKPs).  If you want to deep dive ZKPs then I have some resources for you. It will be a  long journey so don't hurry to finish all the resources, take your time, be curios , know how you learn best and then double down on that method of learning, ask questions , join communities . Hurrying only cause delay , it's coming from my own experience, so plz listen . 
+At a high level, you now understand how to use Circom to create circuits for zero-knowledge proofs (ZKPs). If you want to deep dive ZKPs then I have some resources for you. It will be a long journey so don't hurry to finish all the resources, take your time, be curios , know how you learn best and then double down on that method of learning, ask questions , join communities . Hurrying only cause delay , it's coming from my own experience, so plz listen .
 
 ### Learn Math Prerequisites
 
-1. Learn some basics linear algebra 
-2. In parallel, learn maths  from [Extropy Essential Maths](https://academy.extropy.io/pages/courses/zkmaths-landing.html) and [Math foundations section rareskill zkBook](https://rareskills.io/zk-book)
+1. Learn some basics linear algebra
+2. In parallel, learn maths from [Extropy Essential Maths](https://academy.extropy.io/pages/courses/zkmaths-landing.html) and [Math foundations section rareskill zkBook](https://rareskills.io/zk-book)
+
 ### Build core understanding of zkPs
+
 1. [Rareskill Zkbook](https://rareskills.io/zk-book)
 
-After completing Rareskill ZkBook you can choose your own path. 
-**Live a free life  ✨**
-
-
+After completing Rareskill ZkBook you can choose your own path.
+**Live a free life ✨**
