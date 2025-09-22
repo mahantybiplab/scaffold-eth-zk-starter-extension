@@ -1,0 +1,14 @@
+
+{
+  "scripts": {
+    "circom-compile": "yarn workspace @se-2/circuits circom-compile",
+    "generate-witness": "yarn workspace @se-2/circuits generate-witness",
+    "trusted-setup": "yarn workspace @se-2/circuits trusted-setup",
+    "generate-proof": "yarn workspace @se-2/circuits generate-proof",
+    "verify-proof": "yarn workspace @se-2/circuits verify-proof",
+    "generate-sol-verifier": "yarn workspace @se-2/circuits generate-sol-verifier",
+    "zk-pipeline": "yarn workspace @se-2/circuits zk-pipeline",
+    "move-files": "yarn workspace @se-2/circuits move-files",
+    "circom-clean": "yarn workspace @se-2/circuits circom-clean"
+  }
+}
