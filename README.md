@@ -16,13 +16,6 @@ Before you begin, you need to install the following tools:
 
 ## Quickstart
 
-- Install dependencies
-
-```shell
-cd  scaffold-eth-zk-starter-kit
-yarn install
-```
-
 ```shell
 
 // Run all the below commands from root directory
