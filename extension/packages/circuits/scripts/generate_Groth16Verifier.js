@@ -14,7 +14,7 @@ const __dirname = dirname(__filename);
 function exportSolidityVerifier(zkeyPath, outputPath) {
   try {
     console.log(`▶️ Exporting Groth16Verifier from ${zkeyPath} → ${outputPath}`);
-    execSync(`snarkjs zkey export Groth16Verifier.sol "${zkeyPath}" "${outputPath}"`, { stdio: "inherit" });
+    execSync(`snarkjs zkey export solidityverifier "${zkeyPath}" "${outputPath}"`, { stdio: "inherit" });
     console.log("✅ Groth16Verifier generated successfully!");
   } catch (err) {
     console.error("❌ Failed to export Groth16Verifier:", err);
