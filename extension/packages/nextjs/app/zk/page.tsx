@@ -8,21 +8,13 @@ import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 
 // Generate proof using snarkjs
 const makeProof = async (_proofInput: any, _wasm: string, _zkey: string) => {
-  const { proof, publicSignals } = await groth16.fullProve(
-    _proofInput,
-    _wasm,
-    _zkey
-  );
+  const { proof, publicSignals } = await groth16.fullProve(_proofInput, _wasm, _zkey);
   return { proof, publicSignals };
 };
 
 // Off-chain verification
-const verifyProofOffChain = async (
-  _verificationkey: string,
-  signals: any,
-  proof: any
-) => {
-  const vkey = await fetch(_verificationkey).then((res) => res.json());
+const verifyProofOffChain = async (_verificationkey: string, signals: any, proof: any) => {
+  const vkey = await fetch(_verificationkey).then(res => res.json());
   return groth16.verify(vkey, signals, proof);
 };
 
@@ -31,16 +23,13 @@ const verifyProofOffChain = async (
  */
 async function formatProofForSolidity(proof: any, publicSignals: any) {
   // Export Solidity-ready call data string
-  const calldataStr: string = await groth16.exportSolidityCallData(
-    proof,
-    publicSignals
-  );
+  const calldataStr: string = await groth16.exportSolidityCallData(proof, publicSignals);
 
   // Clean string and convert to BigInt array
   const calldata = calldataStr
     .replace(/["[\]\s]/g, "")
     .split(",")
-    .map((x) => BigInt(x));
+    .map(x => BigInt(x));
 
   // Map to a,b,c,input
   const a = [calldata[0], calldata[1]] as const;
@@ -57,6 +46,7 @@ async function formatProofForSolidity(proof: any, publicSignals: any) {
 export default function ProofPage() {
   const [a, setA] = useState("");
   const [b, setB] = useState("");
+  const [c, setC] = useState("");
 
   const [proof, setProof] = useState<any>(null);
   const [signals, setSignals] = useState<any>(null);
@@ -71,7 +61,7 @@ export default function ProofPage() {
     setSignals(null);
     setOffchainResult(null);
     setOnchainResult(null);
-  }, [a, b]); // Runs when either a or b changes
+  }, [a, b, c]); // Runs when either a or b changes
 
   const wasmFile = `/circuits/${circuitName}_js/${circuitName}.wasm`;
   const zkeyFile = `/circuits/${circuitName}_js/${circuitName}_0001.zkey`;
@@ -80,19 +70,14 @@ export default function ProofPage() {
   const publicClient = usePublicClient();
 
   const { targetNetwork } = useTargetNetwork();
-  const verifierContract =
-    contracts[targetNetwork.id as keyof typeof contracts]?.Groth16Verifier;
+  const verifierContract = contracts[targetNetwork.id as keyof typeof contracts]?.Groth16Verifier;
 
   // Generate proof only
   const runProofs = async () => {
-    if (a.length === 0 || b.length === 0) return;
+    if (a.length === 0 || b.length === 0 || c.length === 0) return;
 
     try {
-      const { proof: _proof, publicSignals: _signals } = await makeProof(
-        { a, b },
-        wasmFile,
-        zkeyFile
-      );
+      const { proof: _proof, publicSignals: _signals } = await makeProof({ a, b, c }, wasmFile, zkeyFile);
       setProof(_proof);
       setSignals(_signals);
       setOffchainResult(null);
@@ -116,9 +101,7 @@ export default function ProofPage() {
     }
     try {
       const valid = await verifyProofOffChain(verificationKey, signals, proof);
-      setOffchainResult(
-        valid ? "✅ Valid proof (Off-chain)" : "❌ Invalid proof (Off-chain)"
-      );
+      setOffchainResult(valid ? "✅ Valid proof (Off-chain)" : "❌ Invalid proof (Off-chain)");
     } catch (err: any) {
       setOnchainResult(null);
       setOffchainResult("❌ Off-chain verification failed: " + err.message);
@@ -134,9 +117,7 @@ export default function ProofPage() {
     }
 
     if (!publicClient) {
-      setOnchainResult(
-        "❌ No public client available. Check your wallet connection."
-      );
+      setOnchainResult("❌ No public client available. Check your wallet connection.");
       return;
     }
 
@@ -149,9 +130,7 @@ export default function ProofPage() {
         args: [a, b, c, input],
       });
       console.log("isValid: ", isValid);
-      setOnchainResult(
-        isValid ? "✅ Valid proof (On-chain)" : "❌ Invalid proof (On-chain)"
-      );
+      setOnchainResult(isValid ? "✅ Valid proof (On-chain)" : "❌ Invalid proof (On-chain)");
     } catch (err: any) {
       setOnchainResult("❌ On-chain verification failed: " + err.message);
       setOffchainResult(null);
@@ -160,21 +139,17 @@ export default function ProofPage() {
 
   return (
     <div className="p-4 max-w-full lg:max-w-4xl mx-auto">
-      <h2 className="text-xl font-semibold mb-4 text-center sm:text-left">
-        Witness Inputs
-      </h2>
+      <h2 className="text-xl font-semibold mb-4 text-center sm:text-left">Witness Inputs</h2>
 
       {/* Inputs */}
       <div className="space-y-4 mb-6">
         {/* Circuit Name - Full Width */}
         <div className="w-full">
-          <label className="block mb-1 font-medium text-sm sm:text-base">
-            Enter circuit name:
-          </label>
+          <label className="block mb-1 font-medium text-sm sm:text-base">Enter circuit name:</label>
           <input
             type="text"
             value={circuitName}
-            onChange={(e) => setCircuitName(e.target.value)}
+            onChange={e => setCircuitName(e.target.value)}
             placeholder="Enter circuit name"
             className="w-full p-2 sm:p-3 text-sm sm:text-base rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           />
@@ -183,27 +158,34 @@ export default function ProofPage() {
         {/* Factor Inputs - Responsive Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div className="flex flex-col">
-            <label className="mb-1 font-medium text-sm sm:text-base">
-              Input a:
-            </label>
+            <label className="mb-1 font-medium text-sm sm:text-base">Input a:</label>
             <input
               type="text"
               required
               value={a}
-              onChange={(e) => setA(e.target.value)}
+              onChange={e => setA(e.target.value)}
               className="w-full p-2 sm:p-3 text-sm sm:text-base rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
           </div>
 
           <div className="flex flex-col">
-            <label className="mb-1 font-medium text-sm sm:text-base">
-              Input b:
-            </label>
+            <label className="mb-1 font-medium text-sm sm:text-base">Input b:</label>
             <input
               type="text"
               required
               value={b}
-              onChange={(e) => setB(e.target.value)}
+              onChange={e => setB(e.target.value)}
+              className="w-full p-2 sm:p-3 text-sm sm:text-base rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <label className="mb-1 font-medium text-sm sm:text-base">Input c:</label>
+            <input
+              type="text"
+              required
+              value={c}
+              onChange={e => setC(e.target.value)}
               className="w-full p-2 sm:p-3 text-sm sm:text-base rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
           </div>
@@ -237,9 +219,7 @@ export default function ProofPage() {
         <div className="space-y-4 sm:space-y-6">
           {/* Proof Section */}
           <div className="w-full">
-            <span className="font-semibold text-sm sm:text-base block mb-2">
-              Proof:
-            </span>
+            <span className="font-semibold text-sm sm:text-base block mb-2">Proof:</span>
             <div className="w-full overflow-x-auto">
               <pre className="text-xs sm:text-sm break-words whitespace-pre-wrap bg-transparent p-2 sm:p-3 rounded border border-gray-200 min-h-[100px]">
                 {JSON.stringify(proof, null, 2)}
@@ -249,9 +229,7 @@ export default function ProofPage() {
 
           {/* Signals Section */}
           <div className="w-full">
-            <span className="font-semibold text-sm sm:text-base block mb-2">
-              Output Signals:
-            </span>
+            <span className="font-semibold text-sm sm:text-base block mb-2">Output Signals:</span>
             <div className="w-full overflow-x-auto">
               <pre className="text-xs sm:text-sm break-words whitespace-pre-wrap bg-transparent p-2 sm:p-3 rounded border border-gray-200 min-h-[60px]">
                 {JSON.stringify(signals, null, 2)}
@@ -264,14 +242,10 @@ export default function ProofPage() {
       {/* Results - Responsive Text */}
       <div className="mt-4 sm:mt-6 space-y-2">
         {offchainResult && (
-          <p className="text-sm sm:text-base p-2 sm:p-3 rounded border border-gray-200 break-words">
-            {offchainResult}
-          </p>
+          <p className="text-sm sm:text-base p-2 sm:p-3 rounded border border-gray-200 break-words">{offchainResult}</p>
         )}
         {onchainResult && (
-          <p className="text-sm sm:text-base p-2 sm:p-3 rounded border border-gray-200 break-words">
-            {onchainResult}
-          </p>
+          <p className="text-sm sm:text-base p-2 sm:p-3 rounded border border-gray-200 break-words">{onchainResult}</p>
         )}
       </div>
     </div>
