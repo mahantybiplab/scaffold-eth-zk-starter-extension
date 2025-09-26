@@ -11,14 +11,17 @@ Before you begin, you need to install the following tools:
 - Node (>= v20.18.3)
 - Yarn (v1 or v2+)
 - Git
-- Rust
-- Circom
+- [Rust](https://rust-lang.org/tools/install/)
+- [Circom](https://docs.circom.io/getting-started/installation/)
 
+**Run all the  commands given here from the  root directory**
+
+## Circom highlighter for vs code
+
+-  `circom-highlighting-vscode` by `iden3 `
 ## Quickstart
 
 ```shell
-
-// Run all the below commands from root directory
 
 yarn zk-pipeline <circuitName> //  <circuitName> is multiplier2
 
@@ -102,17 +105,22 @@ In our `multiplier2.circom` :
 ```circom
 pragma circom 2.0.0;
 
-/*This circuit template checks that c is the multiplication of a and b.*/
+/*This circuit template checks that c is the multiplication of a and b.*/  
 
 template Multiplier2 () {
+    // private inputs
+    signal input a;
+    signal input b;
 
-   // Declaration of signals.
-   signal input a;
-   signal input b;
-   signal output c;
+    // public input
+    signal input c;
+    signal output c_out;
 
-   // Constraints.
-   c <== a * b;
+    // enforce c_out is public = c
+    c_out <== c;
+
+    // constraint: a * b must equal the given c
+    a * b === c;
 }
 
 component main = Multiplier2();
@@ -122,66 +130,29 @@ component main = Multiplier2();
 - `template Multiplier()` - templates are the equivalent to objects in most programming languages, a common form of abstraction
 - `signal input a;` - our first input, `a`; inputs are private by default
 - `signal input b;` - our second input, `b`; also private by default
-- `signal output c;` - our output, `c`; outputs are always public
-- `c <== a * b;` - this does two things: assigns the signal `c` a value _and_ constrains `c` to be equal to the product of `a` and `b`
+- `signal input c;` - our third input, `c`; also private by default
+- `signal output c_out;` - our output `c_out`; outputs are always public
+- `c_out <== c;` - this does two things: assigns the signal `c_out` a value _and_ constrains `c_out` to be equal to `c`
+- `a * b === c;` - this constraints `a * b` must equal the given `c`
 - `component main = Multiplier2()` - instantiates our main component
 
 A constraint in Circom can only use operations involving constants, addition or multiplication. It enforces that both sides of the equation must be equal.
-
-## Some useful commands
-
-You have to run all of these commands from the `root directory`.
-
-```bash
-// to compile the circuit
-yarn circom-compile <circuitName> //  <circuitName> is multiplier2
-
-// to generate the witness
-yarn generate-witness <circuitName>
-
-// to run the trusted setup
-yarn trusted-setup <circuitName>
-
-// to generate proof
-yarn generate-proof <circuitName>
-
-// to verify proof
-yarn verify-proof
-
-// to generate solidity smart contract verifier
-yarn generate-sol-verifier <circuitName>
-
-// This command runs the full zk workflow from compilation to Solidity verifier in one go.
-yarn zk-pipeline <circuitName>
-
-// Copies compiled circuit artifacts (WASM, zkey, verification key) to Next.js public directory for client-side ZK proof generation and verification.
-
-yarn move-files <circuitName>
-
-// to remove the build file
-yarn circom-clean
-
-```
-
-**Each of the commands above abstracts the full underlying commands shown in the sections below.**
 
 ## Compiling the circuit
 
 Now is time to compile the circuit to get a system of arithmetic equations representing it. As a result of the compilation we will also obtain programs to compute the witness. We can compile the circuit with the following command:
 
 ```bash
-circom multiplier2.circom --r1cs --wasm --sym
+yarn circom-compile <circuitName> //  <circuitName> is multiplier2
 ```
 
-With these options we generate three types of files:
+This command creates a build folder if doesn't exist inside circuit directory and inside build folder it generates the following files and folder :
 
-- `--r1cs`: it generates the file `multiplier2.r1cs` that contains the `R1CS constraint system` (In this system, a constraint can only use operations involving constants, addition or multiplication.) of the circuit in binary format.
+-  `multiplier2.r1cs`: it that contains the `R1CS constraint system` (In this system, a constraint can only use operations involving constants, addition or multiplication.) of the circuit in binary format .
 
-- `--wasm`: it generates the directory `multiplier2_js` that contains the `Wasm` code (multiplier2.wasm) and other files needed to generate the `witness` .
+- `multiplier2_js`: this directory   contains the `Wasm` code `multiplier2.wasm` and other files needed to generate the `witness` .
 
-- `--sym` : it generates the file `multiplier2.sym` , a symbols file required for debugging or for printing the constraint system in an annotated mode.
-
-We can use the option `-o` to specify the directory where these files are created.
+- `multiplier2.sym` : it's a symbols file required for debugging or for printing the constraint system in an annotated mode.
 
 You will get an error if the file name is `Multiplier2.circom` .
 
@@ -189,28 +160,23 @@ You will get an error if the file name is `Multiplier2.circom` .
 
 Before creating the proof, we need to calculate all the `signals` (A **signal** is a variable that carries a value inside the circuit.) of the circuit that match all the constraints of the circuit. For that, we will use the `Wasm` module generated by`circom` that helps to do this job.
 
-In our case, we want to prove that we are able to factor the number 33. So, we assign `a = 3` and `b = 11`.
-
-Note that we could assign the number 1 to one of the inputs and the number 33 to the other. So, our proof does not really show that we are able to factor the number 33.
-
-**Challenge: Can you create Circom constraints for inputs a and b such that neither can be 1 or 33? Do it after completing the guide.**
+In our case, let's say we want to prove that we are able to factor the number 33. So, we assign `a = 3` , `b = 11` and `c = 33` .
 
 We need to create a file named `input.json` containing the inputs written in the standard json format. It's already created for you .
 
-We use strings instead of numbers because JavaScript does not work accurately with integers larger than 253.
+We use strings instead of numbers because JavaScript does not work accurately with integers larger than $2^{53}$.
 
 ```text
-{"a": "3", "b": "11"}
+{"a": "3", "b": "11", "c":"33"}
 ```
 
 Now, we calculate the witness and generate a binary file `witness.wtns` containing it in a format accepted by `snarkjs`.
 
-After calling the `circom` compiler with the flag `--wasm` and the circuit `multiplier2.circom` we can find a `multiplier2_js` folder that contains the `Wasm` code in multiplier2.wasm and all the needed `JavaScript` files.
 
-### Computing the witness with WebAssembly
+### Computing the witness 
 
 ```bash
-node ./multiplier2_js/generate_witness.js ./multiplier2_js/multiplier2.wasm input.json witness.wtns
+yarn generate-witness multiplier2
 ```
 
 ## Proving circuits
@@ -251,54 +217,17 @@ We are going to use the Groth16 zk-SNARK protocol. To use this protocol, you wil
 - The powers of tau, which is independent of the circuit, it's a one time setup.
 - The phase 2, which depends on the circuit i.e. on changing the circuit we need to do it again.
 
-### Powers of Tau
-
-First, we start a new "powers of tau" ceremony:
-
-```text
-snarkjs powersoftau new bn128 12 pot12_0000.ptau -v
-```
-
-Then, we contribute to the ceremony:
-
-```text
-snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau --name="First contribution" -v
-```
-
-Now, we have the contributions to the powers of tau in the file _pot12_0001.ptau_ and we can proceed with the Phase 2.
-
-### Phase 2
-
-The **phase 2** is **circuit-specific**. Execute the following command to start the generation of this phase:
-
-```text
-snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau -v
-```
-
-Next, we generate a `.zkey` file that will contain the proving and verification keys together with all phase 2 contributions. Execute the following command to start a new zkey:
-
-```text
-snarkjs groth16 setup multiplier2.r1cs pot12_final.ptau multiplier2_0000.zkey
-```
-
-Contribute to the phase 2 of the ceremony:
-
-```text
-snarkjs zkey contribute multiplier2_0000.zkey multiplier2_0001.zkey --name="1st Contributor Name" -v
-```
-
-Export the verification key:
-
-```text
-snarkjs zkey export verificationkey multiplier2_0001.zkey verification_key.json
+The below command will do these two parts for us automatically:
+```shell
+yarn trusted-setup multiplier2
 ```
 
 ## Generating a Proof
 
 Once the witness is computed and the trusted setup is already executed, we can **generate a zk-proof** associated to the circuit and the witness:
 
-```text
-snarkjs groth16 prove multiplier2_0001.zkey witness.wtns proof.json public.json
+```shell
+yarn generate-proof multiplier2
 ```
 
 This command generates a Groth16 proof and outputs two files:
@@ -311,7 +240,7 @@ This command generates a Groth16 proof and outputs two files:
 To **verify the proof**, execute the following command:
 
 ```text
-snarkjs groth16 verify verification_key.json public.json proof.json
+yarn verify-proof
 ```
 
 The command uses the files `verification_key.json` we exported earlier,`proof.json` and `public.json` to check if the proof is valid. If the proof is valid, the command outputs an `OK`.
@@ -322,43 +251,36 @@ A valid proof not only proves that we know a set of signals that satisfy the cir
 
 👉 It is also possible to generate a **Solidity verifier** that allows **verifying proofs on Ethereum blockchain**.
 
-First, we need to generate the Solidity code using the command:
+First, we need to generate the `Groth16Verifier.sol` inside `foundry/contracts/` directory using the command:
 
-```text
-snarkjs zkey export solidityverifier multiplier2_0001.zkey verifier.sol
+```shell
+yarn generate-sol-verifier multiplier2
 ```
 
-This command takes validation key `multiplier2_0001.zkey` and outputs Solidity code in a file named `verifier.sol`.
 
-The `Verifier` has a `view` function called `verifyProof` that returns `TRUE` if and only if the proof and the inputs are valid. To facilitate the call, you can use `snarkJS` to generate the parameters of the call by typing:
+The `Groth16Verifier`  has a `view` function called `verifyProof` that returns `TRUE` if and only if the proof and the inputs are valid. 
 
-```text
-snarkjs generatecall
+**To run the full zk workflow from compilation to Solidity verifier in one go.**
+```shell
+yarn zk-pipeline multiplier2
 ```
 
-The above command will produce something like this:
-
-```bash
-["0x2693554aeaa92915a78a06122a3f4783d1061d79cd04a13c84da854abdbeeb76", "0x04795913303a26dfe8f061ceb1043835e60148e244b7a66edccf31df90a112f5"],[["0x25ab17d36c3c229cdc5720706fd3f4f13ad49584db81d650d62683094f659e19", "0x27e163ec5c14433855e095351b5555a228e41db738fe1528ce6de0dd50801c03"],["0x031c594380f8e1616bf2941ef4c79be8689c49f5b5d6b7c52da460bb5825c9a2", "0x08885c116c8d0159fdaaefb8a0edfbce0d44d8cdbbd7907088e36754dad1319c"]],["0x121aba29364591f627a4d3a8a5f401451c35c6944fa54d61145a1f2eab0fc210", "0x093d77ab31633dfc47cf6f496136de1edd3185433ded102089d9fd050b0e7334"],["0x0000000000000000000000000000000000000000000000000000000000000021"]
+**To Copy compiled circuit artifacts (WASM, zkey, verification key) to Next.js public directory for client-side ZK proof generation and verification.**
+```shell
+yarn move-files multiplier2
 ```
 
-After deploying the contract , take the address of the contract and verify if the proof and the inputs are valid using `foundry cast` .
+**If you haven't started the front-end from Quickstart Section:** 
 
-The command to do so will be like this:
+```shell
+yarn chain // run this if you have not started anvil
 
-```bash
-cast call <CONTRACT_ADDRESS> \
---rpc-url http://127.0.0.1:8545 \
-"verifyProof(uint[2],uint[2][2],uint[2],uint[1])(bool)" \
-"[0x2693554aeaa92915a78a06122a3f4783d1061d79cd04a13c84da854abdbeeb76,0x04795913303a26dfe8f061ceb1043835e60148e244b7a66edccf31df90a112f5]" \
-"[[0x25ab17d36c3c229cdc5720706fd3f4f13ad49584db81d650d62683094f659e19,0x27e163ec5c14433855e095351b5555a228e41db738fe1528ce6de0dd50801c03],[0x031c594380f8e1616bf2941ef4c79be8689c49f5b5d6b7c52da460bb5825c9a2,0x08885c116c8d0159fdaaefb8a0edfbce0d44d8cdbbd7907088e36754dad1319c]]" \
-"[0x121aba29364591f627a4d3a8a5f401451c35c6944fa54d61145a1f2eab0fc210,0x093d77ab31633dfc47cf6f496136de1edd3185433ded102089d9fd050b0e7334]" \
-"[0x0000000000000000000000000000000000000000000000000000000000000021]"
+yarn deploy --file DeployGroth16Verifier.s.sol  // to deploy Groth16Verifier smart contract 
+
+yarn start // to start the frontend
 ```
 
-If everything works fine, this method should return `TRUE`. You can try to change just a single bit of the parameters, and you will see that the result is verifiable `FALSE`.
-
-
+Now interact with the frontend and enjoy 😁
 ## Challenge for the braves
 
 **Can you create Circom constraints for inputs a and b such that neither can be 1 or 33?**
@@ -376,6 +298,7 @@ At a high level, you now understand how to use Circom to create circuits for zer
 ### Build core understanding of zkPs
 
 1. [Rareskill Zkbook](https://rareskills.io/zk-book)
+2. [ProofsArgsAndZK](https://people.cs.georgetown.edu/jthaler/ProofsArgsAndZK.html)
 
-After completing Rareskill ZkBook you can choose your own path.
+After completing Rareskill ZkBook and  ProofsArgsAndZK you can choose your own path.
 **Live a free life ✨**
