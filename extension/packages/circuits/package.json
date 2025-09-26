@@ -7,7 +7,7 @@
     "trusted-setup": "node scripts/trusted_setup.js",
     "generate-proof": "node scripts/generate_proof.js",
     "verify-proof": "node scripts/verify_proof.js",
-    "generate-sol-verifier": "node scripts/generate_solidityVerifier.js",
+    "generate-sol-verifier": "node scripts/generate_Groth16Verifier.js",
     "move-files": "node scripts/moveFiles.js",
     "zk-pipeline": "node scripts/zk_pipeline.js",
     "circom-clean": "rm -rf build"
