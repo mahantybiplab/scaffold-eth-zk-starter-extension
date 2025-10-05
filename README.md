@@ -664,9 +664,6 @@ yarn zk-pipeline multiplier2
 yarn move-files multiplier2
 ```
 
-Ahh, got it 👍
-Since in your current code you only use **`readContract`**, your README should **not claim you’re persisting anything on-chain**. Instead, you can phrase it like this:
-
 ---
 
 ## 🔎 Proof Verification in This Project
