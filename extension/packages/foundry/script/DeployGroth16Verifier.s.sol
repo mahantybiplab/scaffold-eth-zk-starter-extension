@@ -9,7 +9,7 @@ contract DeployGroth16Verifier is ScaffoldETHDeploy {
    
     function run() external ScaffoldEthDeployerRunner {
         // Deploy the Groth16 Verifier
-        Groth16Verifier verifier = new multiplier2Groth16Verifier();
+        Groth16Verifier verifier = new Groth16Verifier();
        
         
     }
