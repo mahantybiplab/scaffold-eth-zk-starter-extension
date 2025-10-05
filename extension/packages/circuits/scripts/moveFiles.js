@@ -21,7 +21,7 @@ const wasmFile = path.join(
   __dirname,
   `../build/${circuitName}_js/${circuitName}.wasm`
 );
-const zkeyFile = path.join(__dirname, `../build/${circuitName}_0001.zkey`);
+const zkeyFile = path.join(__dirname, `../build/${circuitName}_final.zkey`);
 const verificationFile = path.join(__dirname, "../build/verification_key.json");
 
 // Destination folder
