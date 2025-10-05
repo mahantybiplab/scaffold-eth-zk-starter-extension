@@ -1,7 +1,7 @@
-
 {
   "scripts": {
     "circom-compile": "yarn workspace @se-2/circuits circom-compile",
+    "circuit-specific-setup": "yarn workspace @se-2/circuits circuit-specific-setup",
     "generate-witness": "yarn workspace @se-2/circuits generate-witness",
     "trusted-setup": "yarn workspace @se-2/circuits trusted-setup",
     "generate-proof": "yarn workspace @se-2/circuits generate-proof",

@@ -3,6 +3,7 @@
   "type": "module",
   "scripts": {
     "circom-compile": "node scripts/circom_compile.js",
+    "circuit-specific-setup": "node scripts/circuit_specific_setup.js",
     "generate-witness": "node scripts/generate_witness.js",
     "trusted-setup": "node scripts/trusted_setup.js",
     "generate-proof": "node scripts/generate_proof.js",

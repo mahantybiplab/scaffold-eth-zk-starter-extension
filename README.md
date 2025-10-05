@@ -776,7 +776,20 @@ If you've already generated artifacts for one circuit and want to compile a diff
 yarn circom-clean <previousCircuitName>
 ```
 
+## On modifying a circuit 
 
+Whenever you modify a circuit, you must recompile it, generate a new witness, perform a circuit-specific trusted setup, create a proof, verify that proof, and  generate a new Solidity verifier contract and don't forget to move the required files for off-Chain verification.
+
+Here are the required commands:
+```shell
+yarn circom-compile multiplier2
+yarn generate-witness multiplier2
+yarn circuit-specific-setup multiplier2
+yarn generate-proof multiplier2
+yarn verify-proof
+yarn generate-sol-verifier multiplier2
+yarn move-files multiplier2
+```
 **If you haven't started the front-end from Quickstart Section:**
 
 ```shell
@@ -786,6 +799,7 @@ yarn deploy --file DeployGroth16Verifier.s.sol  // to deploy Groth16Verifier sma
 
 yarn start // to start the frontend
 ```
+
 
 ## Challenge for the braves
 
