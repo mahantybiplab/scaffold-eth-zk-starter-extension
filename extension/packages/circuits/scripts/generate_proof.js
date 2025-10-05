@@ -16,7 +16,7 @@ if (args.length === 0) {
 const circuitName = args[0];
 
 const buildDir = join(__dirname, "../build");
-const zkeyFile = join(buildDir, `${circuitName}_0001.zkey`);
+const zkeyFile = join(buildDir, `${circuitName}_final.zkey`);
 const witnessFile = join(buildDir, "witness.wtns");
 const proofFile = join(buildDir, "proof.json");
 const publicFile = join(buildDir, "public.json");

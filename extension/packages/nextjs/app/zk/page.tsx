@@ -64,7 +64,7 @@ export default function ProofPage() {
   }, [a, b, c]); // Runs when either a or b changes
 
   const wasmFile = `/circuits/${circuitName}_js/${circuitName}.wasm`;
-  const zkeyFile = `/circuits/${circuitName}_js/${circuitName}_0001.zkey`;
+  const zkeyFile = `/circuits/${circuitName}_js/${circuitName}_final.zkey`;
   const verificationKey = `/circuits/${circuitName}_js/verification_key.json`;
 
   const publicClient = usePublicClient();

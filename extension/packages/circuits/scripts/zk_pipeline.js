@@ -16,7 +16,7 @@ function run(cmd) {
 // Get circuit name from CLI argument
 const args = process.argv.slice(2);
 if (args.length === 0) {
-  console.error("❌ Please provide a circuit name: node zk-pipeline.mjs <circuitName>");
+  console.error("❌ Please provide a circuit name: node zk-pipeline.js <circuitName>");
   process.exit(1);
 }
 const circuitName = args[0];
@@ -27,11 +27,11 @@ const wasmFile = join(wasmDir, `${circuitName}.wasm`);
 const wcCjs = join(wasmDir, "witness_calculator.cjs");
 const inputFile = join(__dirname, "../input.json");
 const witnessFile = join(buildDir, "witness.wtns");
-const zkeyFile = join(buildDir, `${circuitName}_0001.zkey`);
+const zkeyFile = join(buildDir, `${circuitName}_final.zkey`);
 const proofFile = join(buildDir, "proof.json");
 const publicFile = join(buildDir, "public.json");
 const vkeyFile = join(buildDir, "verification_key.json");
-const verifierFile = join(buildDir, "../../foundry/contracts/Groth16Verifier.sol");
+const verifierFile = join(buildDir, `../../foundry/contracts/${circuitName}Groth16Verifier.sol`);
 
 async function main() {
   try {

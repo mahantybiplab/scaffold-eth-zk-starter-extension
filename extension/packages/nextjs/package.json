@@ -1,5 +1,8 @@
 {
   "dependencies": {
     "snarkjs": "^0.7.5"
+  },
+  "devDependencies": {
+    "@types/snarkjs": "^0.7.9"
   }
 }

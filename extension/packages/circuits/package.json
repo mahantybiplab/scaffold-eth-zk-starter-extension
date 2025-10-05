@@ -10,7 +10,7 @@
     "generate-sol-verifier": "node scripts/generate_Groth16Verifier.js",
     "move-files": "node scripts/moveFiles.js",
     "zk-pipeline": "node scripts/zk_pipeline.js",
-    "circom-clean": "rm -rf build"
+    "circom-clean": "node scripts/circom_clean.js"
   },
   "devDependencies": {
     "snarkjs": "^0.7.0"

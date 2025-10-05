@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 const args = process.argv.slice(2);
 if (args.length === 0) {
   console.error(
-    "❌ Please provide a circuit name: node zk-pipeline.mjs <circuitName>"
+    "❌ Please provide a circuit name: node moveFiles.js <circuitName>"
   );
   process.exit(1);
 }
