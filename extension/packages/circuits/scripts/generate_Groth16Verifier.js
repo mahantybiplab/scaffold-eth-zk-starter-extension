@@ -34,7 +34,7 @@ if (args.length === 0) {
 }
 const circuitName = args[0];
 const buildDir = join(__dirname, "../build");
-const zkeyFile = join(buildDir, `${circuitName}_0001.zkey`);
+const zkeyFile = join(buildDir, `${circuitName}_final.zkey`);
 const verifierFile = join(buildDir, `../../foundry/contracts/Groth16Verifier.sol`);
 
 exportSolidityVerifier(zkeyFile, verifierFile);
