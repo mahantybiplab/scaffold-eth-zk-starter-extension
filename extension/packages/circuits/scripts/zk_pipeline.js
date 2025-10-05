@@ -31,7 +31,7 @@ const zkeyFile = join(buildDir, `${circuitName}_final.zkey`);
 const proofFile = join(buildDir, "proof.json");
 const publicFile = join(buildDir, "public.json");
 const vkeyFile = join(buildDir, "verification_key.json");
-const verifierFile = join(buildDir, `../../foundry/contracts/${circuitName}Groth16Verifier.sol`);
+const verifierFile = join(buildDir, `../../foundry/contracts/Groth16Verifier.sol`);
 
 async function main() {
   try {

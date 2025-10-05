@@ -70,7 +70,7 @@ export default function ProofPage() {
   const publicClient = usePublicClient();
 
   const { targetNetwork } = useTargetNetwork();
-  const verifierContract = contracts[targetNetwork.id as keyof typeof contracts]?.multiplier2Groth16Verifier;
+  const verifierContract = contracts[targetNetwork.id as keyof typeof contracts]?.Groth16Verifier;
 
   // Generate proof only
   const runProofs = async () => {
