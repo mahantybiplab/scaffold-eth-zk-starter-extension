@@ -778,7 +778,7 @@ yarn circom-clean <previousCircuitName>
 
 ## On modifying a circuit 
 
-Whenever you modify a circuit, you must recompile it, generate a new witness, perform a circuit-specific trusted setup, create a proof, verify that proof, and  generate a new Solidity verifier contract and don't forget to move the required files for off-Chain verification.
+Whenever you modify a circuit, you must recompile it, change the input.json file ,generate a new witness, perform a circuit-specific trusted setup, create a proof, verify that proof, and  generate a new Solidity verifier contract and don't forget to move the required files for off-Chain verification.
 
 Here are the required commands:
 ```shell
