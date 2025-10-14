@@ -192,16 +192,7 @@ After compiling the circuit and running the witness calculator with an appropria
 - **.wtns** - contains all the computed signals (the witness)
 - **.r1cs** - contains the constraints describing the circuit
 
-`.r1cs` + `.wtns` → lets prover check correctness of the circuit. We can't directly send these two files to verifier because using `snarkjs` we can decode the all the private inputs. Run the  below commands from the `build` directory to generate a `witness.json` file that contains all the witnesses and to check if the generated witness complies with the r1cs file or not.
-
-```shell
-snarkjs wtns export json witness.wtns witness.json // to create the json file
-snarkjs wtns check multiplier2.r1cs witness.wtns   // to check if WITNESS IS CORRECT
-```
-
-To prevent this from happening , we need to create a proof without revealing the witness.
-This keeps your private inputs secret while proving the computation is correct.
-For that, we'll use the `snarkjs` tool to generate and validate a proof for our inputs—leveraging zk-SNARKs, the powerhouse behind efficient zero-knowledge proofs.
+So together, `.r1cs` + `.wtns` prove that you have a correct solution to the circuit. But a verifier can’t trust these files directly — checking them would reveal private data and require full recomputation. Instead, a cryptographic proof (generated using the witness and the proving key) allows the verifier to quickly confirm correctness without seeing the witness.
 
 Before jumping into the steps, here's a quick primer on the key tech we'll be using:
 
@@ -296,7 +287,15 @@ _Note: If you want to avoid trusted setups entirely, consider using PLONK or oth
 
 Ready to put this into action? In the next section, we'll run the snarkjs commands to handle these phases hands-on.
 
-### Running the Trusted Setup with snarkjs
+The below command will do these setups for us automatically:
+
+```shell
+yarn trusted-setup multiplier2
+```
+⚠️ But if you really want to know how a trusted setup is done in Circom, click below 👇. Reminder: it’s a long read 📖⏳
+
+<details>
+<summary>Running the Trusted Setup with snarkjs(click to expand)</summary>
 
 Now let's see how `circuits/scripts/trusted_setup.js` file is automating this process for us:
 
@@ -609,11 +608,7 @@ execSync(
 ```
 We export the verification key from `circuit_final.zkey` into `verification_key.json`.
 
-The below command will do these setups for us automatically:
-
-```shell
-yarn trusted-setup multiplier2
-```
+</details>
 
 ## Generating a Groth16 Proof
 
