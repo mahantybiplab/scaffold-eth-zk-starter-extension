@@ -142,11 +142,12 @@ A constraint in Circom can only use operations involving constants, addition or 
 Now is time to compile the circuit to get a system of arithmetic equations representing it. As a result of the compilation we will also obtain programs to compute the witness.
 
 If you have already run all the commands from the quick start section , then run :
+
 ```shell
 yarn circom-clean <circuitName>
 ```
 
- We can compile the circuit with the following command:
+We can compile the circuit with the following command:
 
 ```shell
 yarn circom-compile <circuitName> //  <circuitName> is multiplier2
@@ -291,6 +292,9 @@ The below command will do these setups for us automatically:
 ```shell
 yarn trusted-setup multiplier2
 ```
+
+During the trusted setup, several files are generated, including intermediate setup files, the **proving key** (`multiplier2_final.zkey`), and the **verification key** (`verification_key.json`).
+
 ⚠️ But if you really want to know how a trusted setup is done in Circom, click below 👇. Reminder: it’s a long read 📖⏳
 
 <details>
@@ -605,6 +609,7 @@ execSync(
   { stdio: "inherit" }
 );
 ```
+
 We export the verification key from `circuit_final.zkey` into `verification_key.json`.
 
 </details>
@@ -630,7 +635,7 @@ To **verify the proof**, execute the following command:
 yarn verify-proof
 ```
 
-The command uses the files `verification_key.json` we exported earlier,`proof.json` and `public.json` to check if the proof is valid. If the proof is valid, the command outputs an `OK`.
+The command uses the files `verification_key.json` ,`proof.json` and `public.json` to check if the proof is valid. If the proof is valid, the command outputs an `OK`.
 
 A valid proof not only proves that we know a set of signals that satisfy the circuit, but also that the public inputs and outputs that we use match the ones described in the `public.json` file.
 
@@ -646,13 +651,13 @@ yarn generate-sol-verifier multiplier2
 
 The `Groth16Verifier` has a `view` function called `verifyProof` that returns `TRUE` if and only if the proof and the inputs are valid.
 
-**To run the full zk workflow from compilation to Solidity groth16 verifier contract in one go.**
+**To run the full zk workflow from compilation to Solidity groth16 verifier contract in one go:**
 
 ```shell
 yarn zk-pipeline multiplier2
 ```
 
-**To Copy compiled circuit artifacts (WASM, zkey, verification key) to Next.js public directory for client-side ZK proof generation and verification.**
+**To Copy compiled circuit artifacts (WASM, zkey, verification key) to Next.js public directory for client-side ZK proof generation and verification:**
 
 ```shell
 yarn move-files multiplier2
@@ -667,84 +672,109 @@ We support two modes of verification:
 ### 1. ✅ Off-chain Verification
 
 * Done with `snarkjs.verify()` in the browser.
-* Uses the circuit’s `verification_key.json`.
-* **Why:**
+* Uses the circuit’s **`verification_key.json`**.
+* **Purpose:**
 
   * Quick, free check (no gas).
-  * Good for testing before touching the blockchain.
-  * Prevents submitting invalid proofs and wasting resources.
+  * Helps catch mistakes **before interacting with the blockchain**.
+  * Acts as a **pre-flight sanity check** to prevent submitting invalid proofs that would be rejected on-chain.
+
+> **Note:** The off-chain check is optional — the blockchain does not require it. It’s a convenience for the user/developer.
 
 ### 2. ⛓️ On-chain Verification (Read-only)
 
 * Done with the deployed **`Groth16Verifier`** smart contract.
-* Our frontend calls the verifier using **`readContract`**, which performs the actual elliptic curve pairing check **inside the EVM**.
-* **Why:**
+* Our frontend calls the verifier using **`readContract`**, which performs the elliptic curve pairing checks **inside the EVM**.
+* **Purpose:**
 
-  * The check is trustless (comes directly from the blockchain).
-  * Useful to confirm that the verifier contract recognizes the proof as valid.
+  * The check is **trustless**, coming directly from the blockchain.
+  * Confirms that the deployed verifier contract recognizes the proof as valid.
   * No gas cost since this is a read-only call (no state changes).
 
 ---
 
 ## ❓ Why Have Both?
 
-* **Off-chain verify** → quick sanity check to avoid unnecessary blockchain calls.
-* **On-chain verify (read-only)** → trustless check that the verifier contract accepts the proof, without spending gas.
+* **Off-chain verify** → optional sanity check to prevent wasted effort or gas when submitting a proof.
+* **On-chain verify (read-only)** → trustless confirmation that the proof is accepted by the blockchain verifier.
 
-👉 In this project we **do not use stateful verification (`writeContract`)**, since we don’t persist proof results or trigger on-chain logic. If you wanted to mint tokens, unlock funds, or enforce access, you would extend the contract and use `writeContract`.
+> In real-world applications like Zcash or zkRollups:
+>
+> * Wallets or rollup operators often run **off-chain verification** first to ensure the proof is correct.
+> * The blockchain verifier contract then performs **on-chain verification** to enforce correctness trustlessly.
+
+If your application involved **stateful actions** (minting tokens, unlocking funds, granting access), you would use `writeContract` instead of `readContract`.
+
+* In that case, **off-chain verification becomes critical**, because sending an invalid proof would otherwise fail the transaction and waste gas.
 
 ---
 
-## Understanding the Frontend: Key Concepts in nextjs/app/zk/page.tsx
+## Understanding the Frontend: Key Concepts in `nextjs/app/zk/page.tsx`
 
 ### 🔹 1. Proof Generation — `makeProof()`
+
 ```ts
 const makeProof = async (_proofInput, _wasm, _zkey) => {
-  const { proof, publicSignals } = await groth16.fullProve(_proofInput, _wasm, _zkey);
+  const { proof, publicSignals } = await groth16.fullProve(
+    _proofInput,
+    _wasm,
+    _zkey
+  );
   return { proof, publicSignals };
 };
 ```
-- This function uses **`snarkjs.groth16.fullProve()`** to generate a zk-SNARK proof.  
-- It takes:
-  - `_proofInput`: the circuit inputs (like `a`, `b`, `c` values).  
-  - `_wasm`: the compiled circuit file.  
-  - `_zkey`: the proving key file.  
-- Returns:
-  - `proof`: cryptographic proof of correctness.  
-  - `publicSignals`: the public outputs of the circuit.  
-- The proof generated by this function is later used for both off-chain and on-chain verification, since both require a valid proof and the same public signals.
+
+* Uses **`snarkjs.groth16.fullProve()`** to generate a zk-SNARK proof.
+* Inputs:
+
+  * `_proofInput`: circuit inputs (`a`, `b`, `c`).
+  * `_wasm`: compiled circuit.
+  * `_zkey`: proving key.
+* Returns:
+
+  * `proof`: cryptographic proof of correctness.
+  * `publicSignals`: the public outputs of the circuit.
+
+> The same proof and public signals are used for both off-chain and on-chain verification.
+
 ---
 
 ### 🔹 2. Off-chain Verification — `verifyProofOffChain()`
+
 ```ts
 const verifyProofOffChain = async (_verificationkey, signals, proof) => {
-  const vkey = await fetch(_verificationkey).then(res => res.json());
+  const vkey = await fetch(_verificationkey).then((res) => res.json());
   return groth16.verify(vkey, signals, proof);
 };
 ```
-- Loads the circuit’s **`verification_key.json`** from the `netxtjs/public/circuits` folder.  
-- Passes the key, proof, and public signals to `snarkjs.groth16.verify()` to check validity **locally in the browser**.  
-- No blockchain or smart contract is involved → **zero gas cost**.  
-- Purpose: Quickly test whether the proof is valid before sending it to the verifier contract.
+
+* Loads the circuit’s **`verification_key.json`** from the `public/circuits` folder.
+* Uses `groth16.verify()` to check the proof **locally in the browser**.
+* **Zero gas cost**, no blockchain involved.
+* **Purpose:** quickly check that the proof is structurally valid and matches the public signals before optionally sending it to the verifier contract.
+
+> In real-world ZK systems, this is equivalent to a **pre-flight validation** to avoid sending bad proofs to the network.
 
 ---
 
 ### 🔹 3. Proof Formatting for Solidity — `formatProofForSolidity()`
+
 ```ts
 const calldataStr = await groth16.exportSolidityCallData(proof, publicSignals);
 ```
-- Converts the proof and public signals into the specific data format required by the Solidity verifier contract (`a`, `b`, `c`, `input`).  
-- This uses **`groth16.exportSolidityCallData()`**, which outputs a string representation of the proof as Solidity calldata.  
-- The function then:
-  1. Cleans and splits that string.  
-  2. Converts each value to a `BigInt`.  
-  3. Maps the data into the tuple structure expected by the verifier contract.  
 
-This step is **only used for on-chain verification**.
+* Converts the proof and public signals into **Solidity calldata** (`a`, `b`, `c`, `input`).
+* Steps:
+
+  1. Clean and split the string output from `groth16.exportSolidityCallData()`.
+  2. Convert each value to `BigInt`.
+  3. Map into the tuple structure expected by the Solidity verifier (`a`, `b`, `c`, `input`).
+* Only required for **on-chain verification**.
 
 ---
 
 ### 🔹 4. On-chain Verification — Contract Call
+
 ```ts
 const { a, b, c, input } = await formatProofForSolidity(proof, signals);
 const isValid = await publicClient.readContract({
@@ -754,12 +784,13 @@ const isValid = await publicClient.readContract({
   args: [a, b, c, input],
 });
 ```
-- Takes the Solidity-formatted proof values and sends them to the deployed **`Groth16Verifier`** contract.  
-- Calls the `verifyProof(a, b, c, input)` function using **`readContract()`** from Wagmi.  
-- The EVM runs the elliptic curve pairing checks but **does not broadcast or record a transaction** — so **no gas is spent**.  
-- Returns a boolean (`true` / `false`) depending on whether the verifier contract considers the proof valid.  
 
----
+* Sends the Solidity-formatted proof to the deployed **`Groth16Verifier`** contract.
+* Calls `verifyProof(a, b, c, input)` using `readContract()` (no transaction broadcast).
+* Returns a boolean (`true` / `false`) depending on whether the contract accepts the proof.
+
+> **In practice:** This is the trustless verification step that the blockchain enforces. Even if off-chain verification passes, only the on-chain verifier is authoritative.
+
 
 ## Managing Multiple Circuits
 
@@ -769,11 +800,12 @@ If you've already generated artifacts for one circuit and want to compile a diff
 yarn circom-clean <previousCircuitName>
 ```
 
-## On modifying a circuit 
+## On modifying a circuit
 
-Whenever you modify a circuit, you must recompile it, change the input.json file ,generate a new witness, perform a circuit-specific trusted setup, create a proof, verify that proof, and  generate a new Solidity verifier contract and don't forget to move the required files for off-Chain verification.
+Whenever you modify a circuit, you must recompile it, change the input.json file ,generate a new witness, perform a circuit-specific trusted setup, create a proof, verify that proof, and generate a new Solidity verifier contract and don't forget to move the required files for client-side verification.
 
 Here are the required commands:
+
 ```shell
 yarn circom-compile multiplier2
 yarn generate-witness multiplier2
@@ -783,6 +815,7 @@ yarn verify-proof
 yarn generate-sol-verifier multiplier2
 yarn move-files multiplier2
 ```
+
 **If you haven't started the front-end from Quickstart Section:**
 
 ```shell
@@ -792,7 +825,6 @@ yarn deploy --file DeployGroth16Verifier.s.sol  // to deploy Groth16Verifier sma
 
 yarn start // to start the frontend
 ```
-
 
 ## Challenge for the braves
 
