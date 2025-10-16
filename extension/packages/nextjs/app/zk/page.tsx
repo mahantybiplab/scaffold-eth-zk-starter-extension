@@ -5,6 +5,7 @@ import { groth16 } from "snarkjs";
 import { usePublicClient } from "wagmi";
 import contracts from "~~/contracts/deployedContracts";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
+import { notification } from "~~/utils/scaffold-eth";
 
 // Generate proof using snarkjs
 const makeProof = async (_proofInput: any, _wasm: string, _zkey: string) => {
@@ -46,22 +47,16 @@ async function formatProofForSolidity(proof: any, publicSignals: any) {
 export default function ProofPage() {
   const [a, setA] = useState("");
   const [b, setB] = useState("");
-  const [c, setC] = useState("");
 
   const [proof, setProof] = useState<any>(null);
   const [signals, setSignals] = useState<any>(null);
 
-  const [offchainResult, setOffchainResult] = useState<string | null>(null);
-  const [onchainResult, setOnchainResult] = useState<string | null>(null);
-
-  const [circuitName, setCircuitName] = useState("multiplier2");
+  const [circuitName, setCircuitName] = useState("KnowFactorsOf33");
 
   useEffect(() => {
     setProof(null);
     setSignals(null);
-    setOffchainResult(null);
-    setOnchainResult(null);
-  }, [a, b, c]); // Runs when either a or b changes
+  }, [a, b]); // Runs when either a or b changes
 
   const wasmFile = `/circuits/${circuitName}_js/${circuitName}.wasm`;
   const zkeyFile = `/circuits/${circuitName}_js/${circuitName}_final.zkey`;
@@ -74,50 +69,72 @@ export default function ProofPage() {
 
   // Generate proof only
   const runProofs = async () => {
-    if (a.length === 0 || b.length === 0 || c.length === 0) return;
+    if (a.length === 0 || b.length === 0) return;
 
     try {
-      const { proof: _proof, publicSignals: _signals } = await makeProof({ a, b, c }, wasmFile, zkeyFile);
+      const { proof: _proof, publicSignals: _signals } = await makeProof({ a, b }, wasmFile, zkeyFile);
       setProof(_proof);
       setSignals(_signals);
-      setOffchainResult(null);
-      setOnchainResult(null);
+      notification.success("✅ Proof is generated successfully", {
+        duration: 3000,
+        position: "top-center",
+      });
     } catch (err: any) {
       console.error(err);
       setProof(null);
       setSignals(null);
-      setOffchainResult(null);
-      setOnchainResult(null);
-      setOffchainResult("❌ Error generating proof: " + err.message);
+      notification.error(`❌ Error generating proof: ${err.message}`, {
+        duration: 3000,
+        position: "top-center",
+      });
     }
   };
 
   // Off-chain verification
   const handleOffChainVerify = async () => {
     if (!proof || !signals) {
-      setOffchainResult("⚠️ Generate proof first.");
-      setOnchainResult(null);
+      notification.warning("Generate proof first.", {
+        duration: 3000,
+        position: "top-center",
+      });
       return;
     }
     try {
       const valid = await verifyProofOffChain(verificationKey, signals, proof);
-      setOffchainResult(valid ? "✅ Valid proof (Off-chain)" : "❌ Invalid proof (Off-chain)");
+      if (valid) {
+        notification.success("✅ Valid proof (Off-chain)", {
+          duration: 3000,
+          position: "top-center",
+        });
+      } else {
+        notification.error("❌ Invalid proof (Off-chain)", {
+          duration: 3000,
+          position: "top-center",
+        });
+      }
     } catch (err: any) {
-      setOnchainResult(null);
-      setOffchainResult("❌ Off-chain verification failed: " + err.message);
+      notification.error(`❌ Off-chain verification process failed: ${err.message}`, {
+        duration: 3000,
+        position: "top-center",
+      });
     }
   };
 
   // On-chain verification
   const handleOnChainVerify = async () => {
     if (!proof || !signals) {
-      setOnchainResult("⚠️ Generate proof first.");
-      setOffchainResult(null);
+      notification.warning("Generate proof first.", {
+        duration: 3000,
+        position: "top-center",
+      });
       return;
     }
 
     if (!publicClient) {
-      setOnchainResult("❌ No public client available. Check your wallet connection.");
+      notification.error("❌ No public client available. Check your wallet connection.", {
+        duration: 3000,
+        position: "top-center",
+      });
       return;
     }
 
@@ -129,20 +146,59 @@ export default function ProofPage() {
         functionName: "verifyProof",
         args: [a, b, c, input],
       });
-      console.log("isValid: ", isValid);
-      setOnchainResult(isValid ? "✅ Valid proof (On-chain)" : "❌ Invalid proof (On-chain)");
+      if (isValid) {
+        notification.success("✅ Valid proof (On-chain)", {
+          duration: 3000,
+          position: "top-center",
+        });
+      } else {
+        notification.error("❌ Invalid proof (On-chain)", {
+          duration: 3000,
+          position: "top-center",
+        });
+      }
     } catch (err: any) {
-      setOnchainResult("❌ On-chain verification failed: " + err.message);
-      setOffchainResult(null);
+      notification.error(`❌ On-chain verification process failed: ${err.message}`, {
+        duration: 3000,
+        position: "top-center",
+      });
     }
   };
 
   return (
-    <div className="p-4 max-w-full lg:max-w-4xl mx-auto">
-      <h2 className="text-xl font-semibold mb-4 text-center sm:text-left">Witness Inputs</h2>
+    <div className="p-4 max-w-full lg:max-w-4xl mx-auto space-y-6">
+      {/* Explanation Section */}
+      <div className="p-6 rounded-xl shadow-lg">
+        <h1 className="text-2xl font-bold mb-3">🎯 Our Goal Here</h1>
+        <p className="mb-4">
+          This circuit lets you prove that you know two secret numbers <b>a</b> and <b>b</b> whose product equals{" "}
+          <b>33</b>, without revealing the numbers themselves.
+        </p>
 
-      {/* Inputs */}
-      <div className="space-y-4 mb-6">
+        <h2 className="text-xl font-semibold mb-2">🧩 How It Works</h2>
+        <ul className="list-disc list-inside mb-4 space-y-1">
+          <li>
+            The <b>circuit name</b> tells the app which Zero-Knowledge circuit to use (for example,
+            <code>KnowFactorsOf33</code> checks if <code>a × b = c</code>).
+          </li>
+          <li>
+            Provide two private inputs: <code>a</code> and <code>b</code>.
+          </li>
+          <li>
+            The circuit checks that <code>a × b = 33</code>.
+          </li>
+          <li>The proof confirms the statement is true without revealing your numbers.</li>
+        </ul>
+
+        <p className="italic">
+          Example: If <code>a = 3</code> and <code>b = 11</code>, the proof confirms you know factors of 33.
+        </p>
+      </div>
+
+      {/* Witness Inputs */}
+      <div className="shadow-md rounded-xl p-6 space-y-6">
+        <h2 className="text-xl font-semibold  text-center sm:text-left">🔑 Witness Inputs</h2>
+
         {/* Circuit Name - Full Width */}
         <div className="w-full">
           <label className="block mb-1 font-medium text-sm sm:text-base">Enter circuit name:</label>
@@ -155,99 +211,76 @@ export default function ProofPage() {
           />
         </div>
 
-        {/* Factor Inputs - Responsive Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        {/* Inputs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col">
-            <label className="mb-1 font-medium text-sm sm:text-base">Input a:</label>
+            <label className="mb-1 font-medium">Input a:</label>
             <input
               type="text"
               required
               value={a}
               onChange={e => setA(e.target.value)}
-              className="w-full p-2 sm:p-3 text-sm sm:text-base rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              placeholder="Enter value for a"
+              className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
             />
           </div>
 
           <div className="flex flex-col">
-            <label className="mb-1 font-medium text-sm sm:text-base">Input b:</label>
+            <label className="mb-1 font-medium">Input b:</label>
             <input
               type="text"
               required
               value={b}
               onChange={e => setB(e.target.value)}
-              className="w-full p-2 sm:p-3 text-sm sm:text-base rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="flex flex-col">
-            <label className="mb-1 font-medium text-sm sm:text-base">Input c:</label>
-            <input
-              type="text"
-              required
-              value={c}
-              onChange={e => setC(e.target.value)}
-              className="w-full p-2 sm:p-3 text-sm sm:text-base rounded border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              placeholder="Enter value for b"
+              className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
             />
           </div>
         </div>
+
+        {/* Buttons */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <button
+            onClick={runProofs}
+            className="flex-1 sm:flex-none px-5 py-3 text-white bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition"
+          >
+            Generate Proof
+          </button>
+          <button
+            onClick={handleOffChainVerify}
+            className="flex-1 sm:flex-none px-5 py-3 text-white bg-green-600 hover:bg-green-700 rounded-lg font-medium transition"
+          >
+            Verify Off-chain
+          </button>
+          <button
+            onClick={handleOnChainVerify}
+            className="flex-1 sm:flex-none px-5 py-3 text-white bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition"
+          >
+            Verify On-chain
+          </button>
+        </div>
       </div>
 
-      {/* Buttons - Responsive Layout */}
-      <div className="flex flex-col sm:flex-row gap-3 sm:gap-2 mb-6">
-        <button
-          onClick={runProofs}
-          className="w-full sm:w-auto px-4 py-2 sm:py-3 text-sm sm:text-base border border-blue-500 text-blue-500 rounded hover:bg-blue-50 transition flex-1 sm:flex-none"
-        >
-          Generate Proof
-        </button>
-        <button
-          onClick={handleOffChainVerify}
-          className="w-full sm:w-auto px-4 py-2 sm:py-3 text-sm sm:text-base border border-green-500 text-green-500 rounded hover:bg-green-50 transition flex-1 sm:flex-none"
-        >
-          Verify Off-chain
-        </button>
-        <button
-          onClick={handleOnChainVerify}
-          className="w-full sm:w-auto px-4 py-2 sm:py-3 text-sm sm:text-base border border-purple-500 text-purple-500 rounded hover:bg-purple-50 transition flex-1 sm:flex-none"
-        >
-          Verify On-chain
-        </button>
-      </div>
-
-      {/* Proof & Signals - Responsive Cards */}
+      {/* Proof & Signals */}
       {proof && (
-        <div className="space-y-4 sm:space-y-6">
-          {/* Proof Section */}
-          <div className="w-full">
-            <span className="font-semibold text-sm sm:text-base block mb-2">Proof:</span>
-            <div className="w-full overflow-x-auto">
-              <pre className="text-xs sm:text-sm break-words whitespace-pre-wrap bg-transparent p-2 sm:p-3 rounded border border-gray-200 min-h-[100px]">
-                {JSON.stringify(proof, null, 2)}
-              </pre>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Proof */}
+          <div className="shadow-md rounded-xl p-4 overflow-x-auto">
+            <h3 className="font-semibold mb-2">📝 Proof</h3>
+            <pre className="text-sm break-words whitespace-pre-wrap p-3 rounded-lg border border-gray-200 min-h-[120px]">
+              {JSON.stringify(proof, null, 2)}
+            </pre>
           </div>
 
-          {/* Signals Section */}
-          <div className="w-full">
-            <span className="font-semibold text-sm sm:text-base block mb-2">Output Signals:</span>
-            <div className="w-full overflow-x-auto">
-              <pre className="text-xs sm:text-sm break-words whitespace-pre-wrap bg-transparent p-2 sm:p-3 rounded border border-gray-200 min-h-[60px]">
-                {JSON.stringify(signals, null, 2)}
-              </pre>
-            </div>
+          {/* Signals */}
+          <div className="shadow-md rounded-xl p-4 overflow-x-auto">
+            <h3 className="font-semibold mb-2">📊 Output Signals</h3>
+            <pre className="text-sm break-words whitespace-pre-wrap p-3 rounded-lg border border-gray-200 min-h-[120px]">
+              {JSON.stringify(signals, null, 2)}
+            </pre>
           </div>
         </div>
       )}
-
-      {/* Results - Responsive Text */}
-      <div className="mt-4 sm:mt-6 space-y-2">
-        {offchainResult && (
-          <p className="text-sm sm:text-base p-2 sm:p-3 rounded border border-gray-200 break-words">{offchainResult}</p>
-        )}
-        {onchainResult && (
-          <p className="text-sm sm:text-base p-2 sm:p-3 rounded border border-gray-200 break-words">{onchainResult}</p>
-        )}
-      </div>
     </div>
   );
 }

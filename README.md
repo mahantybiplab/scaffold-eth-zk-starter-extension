@@ -25,9 +25,9 @@ Before you begin, you need to install the following tools:
 
 ```shell
 
-yarn zk-pipeline <circuitName> //  <circuitName> is multiplier2
+yarn zk-pipeline <circuitName> //  <circuitName> is KnowFactorsOf33
 
-yarn move-files <circuitName> //  <circuitName> is multiplier2
+yarn move-files <circuitName> //  <circuitName> is KnowFactorsOf33
 
 yarn chain // run this if you have not started anvil
 
@@ -101,39 +101,41 @@ The **witness** includes **all values** that flow through the circuit:
 - They ensure the prover can’t cheat by plugging in random values.
 - Example: if the circuit says `a * b = c`, then the constraint forces the witness values of `a`, `b`, and `c` to actually satisfy that equation.
 
-In our `multiplier2.circom` :
+In our `KnowFactorsOf33.circom` :
 
 ```circom
 pragma circom 2.0.0;
 
-/*This circuit template checks that c is the multiplication of a and b.*/
+/*This circuit template checks that c is the multiplication of a and b.*/  
 
-template Multiplier2 () {
+template KnowFactorsOf33() {
+    
+    // private inputs
     signal input a;
     signal input b;
-    signal input c;
 
-    signal output c_out;
+    // public output
+    signal output c;
 
-    // enforce c_out is public = c
-    c_out <== c;
+    // Compute and expose the product
+    c <== a * b;
 
-    // constraint: a * b must equal the given c
-    a * b === c;
+    // Constrain the product to be 33
+    c === 33;
 }
 
-component main = Multiplier2();
+
+component main = KnowFactorsOf33();
 ```
 
 - `pragma circom 2.0.0;`- defines the version of Circom being used
-- `template Multiplier()` - templates are the equivalent to objects in most programming languages, a common form of abstraction
+- `template KnowFactorsOf33()` - templates are the equivalent to objects in most programming languages, a common form of abstraction
 - `signal input a;` - our first input, `a`; inputs are private by default
 - `signal input b;` - our second input, `b`; also private by default
-- `signal input c;` - our third input, `c`; also private by default
-- `signal output c_out;` - our output `c_out`; outputs are always public
-- `c_out <== c;` - this does two things: assigns the signal `c_out` a value _and_ constrains `c_out` to be equal to `c`
-- `a * b === c;` - this constraints `a * b` must equal the given `c`
-- `component main = Multiplier2()` - instantiates our main component
+- `signal output c;` - our output `c`; outputs are always public
+- `c <== a * b;` - simultaneously computes the product of `a` and `b` and ensures `c` matches that value.
+- `c === 33;` - this constraints `c` must equal `33`
+- `component main = KnowFactorsOf33()` - instantiates our main component
 
 A constraint in Circom can only use operations involving constants, addition or multiplication. It enforces that both sides of the equation must be equal.
 
@@ -150,18 +152,18 @@ yarn circom-clean <circuitName>
 We can compile the circuit with the following command:
 
 ```shell
-yarn circom-compile <circuitName> //  <circuitName> is multiplier2
+yarn circom-compile <circuitName> //  <circuitName> is KnowFactorsOf33
 ```
 
 This command creates a build folder (if doesn't exist) inside circuit directory and inside build folder it generates the following files and folder :
 
-- `multiplier2.r1cs`: it contains the `R1CS constraint system` (In this system, a constraint can only use operations involving constants, addition or multiplication.) of the circuit in binary format .
+- `KnowFactorsOf33.r1cs`: it contains the `R1CS constraint system` (In this system, a constraint can only use operations involving constants, addition or multiplication.) of the circuit in binary format .
 
-- `multiplier2_js`: this directory contains the `Wasm` code `multiplier2.wasm` and other files needed to generate the `witness` .
+- `KnowFactorsOf33_js`: this directory contains the `Wasm` code `KnowFactorsOf33.wasm` and other files needed to generate the `witness` .
 
-- `multiplier2.sym` : it's a symbols file required for debugging or for printing the constraint system in an annotated mode.
+- `KnowFactorsOf33.sym` : it's a symbols file required for debugging or for printing the constraint system in an annotated mode.
 
-You will get an error if the file name is `Multiplier2.circom` .
+You will get an error if the file name is `KnowFactorsOf33.circom` .
 
 ## Computing our witness
 
@@ -177,12 +179,12 @@ We use strings instead of numbers because JavaScript does not work accurately wi
 {"a": "3", "b": "11", "c": "33"}
 ```
 
-Now, we calculate the witness and generate a binary file `witness.wtns` containing it in a format accepted by `snarkjs`.
+Now, we calculate the witness and generate a binary file `witness.wtns` containing it in a format accepted by `snarkjs` (`snarkjs` is a npm package that contains code to generate and validate ZK proofs from the artifacts produced by `circom`) , our scripts are using `snarkjs` under the hood .
 
 ### Computing the witness
 
 ```bash
-yarn generate-witness multiplier2
+yarn generate-witness KnowFactorsOf33
 ```
 
 ## Proving circuits
@@ -266,7 +268,7 @@ It's like breaking a master key into pieces — you'd need **every single piece*
 
 ### **Groth16 Setup: Two Phases**
 
-Since we're using Groth16, we need a trusted setup with **two parts** —and snarkjs makes running them straightforward:
+Since we're using Groth16, we need a trusted setup with **two parts** —and `snarkjs` makes running them straightforward :
 
 #### **1. Powers of Tau (Universal Setup)**
 
@@ -290,10 +292,10 @@ Ready to put this into action? In the next section, we'll run the snarkjs comman
 The below command will do these setups for us automatically:
 
 ```shell
-yarn trusted-setup multiplier2
+yarn trusted-setup KnowFactorsOf33
 ```
 
-During the trusted setup, several files are generated, including intermediate setup files, the **proving key** (`multiplier2_final.zkey`), and the **verification key** (`verification_key.json`).
+During the trusted setup, several files are generated, including intermediate setup files, the **proving key** (`KnowFactorsOf33_final.zkey`), and the **verification key** (`verification_key.json`).
 
 ⚠️ But if you really want to know how a trusted setup is done in Circom, click below 👇. Reminder: it’s a long read 📖⏳
 
@@ -504,7 +506,7 @@ The `zkey` is a zero-knowledge key that includes both the proving and verificati
 
 Importantly, one can verify whether a `zkey` belongs to a specific circuit or not.
 
-Note that `multiplier2_0000.zkey` (the output of the `zkey` command above) does not include any contributions yet, so it cannot be used in a final circuit.
+Note that `KnowFactorsOf33_0000.zkey` (the output of the `zkey` command above) does not include any contributions yet, so it cannot be used in a final circuit.
 
 _The following steps (9-14) are similar to the equivalent phase 1 steps, except we use `zkey` instead of `powersoftau` as the main command, and we generate `zkey` rather than `ptau` files._
 
@@ -619,7 +621,7 @@ We export the verification key from `circuit_final.zkey` into `verification_key.
 Once the witness is computed and the trusted setup is already executed, we can **generate a zk-proof** associated to the circuit and the witness:
 
 ```shell
-yarn generate-proof multiplier2
+yarn generate-proof KnowFactorsOf33
 ```
 
 This command generates a Groth16 proof and outputs two files:
@@ -646,7 +648,7 @@ A valid proof not only proves that we know a set of signals that satisfy the cir
 First, we need to generate the `Groth16Verifier.sol` inside `foundry/contracts/` directory using the command:
 
 ```shell
-yarn generate-sol-verifier multiplier2
+yarn generate-sol-verifier KnowFactorsOf33
 ```
 
 The `Groth16Verifier` has a `view` function called `verifyProof` that returns `TRUE` if and only if the proof and the inputs are valid.
@@ -654,13 +656,13 @@ The `Groth16Verifier` has a `view` function called `verifyProof` that returns `T
 **To run the full zk workflow from compilation to Solidity groth16 verifier contract in one go:**
 
 ```shell
-yarn zk-pipeline multiplier2
+yarn zk-pipeline KnowFactorsOf33
 ```
 
 **To Copy compiled circuit artifacts (WASM, zkey, verification key) to Next.js public directory for client-side ZK proof generation and verification:**
 
 ```shell
-yarn move-files multiplier2
+yarn move-files KnowFactorsOf33
 ```
 
 ---
@@ -727,7 +729,7 @@ const makeProof = async (_proofInput, _wasm, _zkey) => {
 * Uses **`snarkjs.groth16.fullProve()`** to generate a zk-SNARK proof.
 * Inputs:
 
-  * `_proofInput`: circuit inputs (`a`, `b`, `c`).
+  * `_proofInput`: circuit inputs (`a`, `b`).
   * `_wasm`: compiled circuit.
   * `_zkey`: proving key.
 * Returns:
@@ -807,13 +809,13 @@ Whenever you modify a circuit, you must recompile it, change the input.json file
 Here are the required commands:
 
 ```shell
-yarn circom-compile multiplier2
-yarn generate-witness multiplier2
-yarn circuit-specific-setup multiplier2
-yarn generate-proof multiplier2
+yarn circom-compile KnowFactorsOf33
+yarn generate-witness KnowFactorsOf33
+yarn circuit-specific-setup KnowFactorsOf33
+yarn generate-proof KnowFactorsOf33
 yarn verify-proof
-yarn generate-sol-verifier multiplier2
-yarn move-files multiplier2
+yarn generate-sol-verifier KnowFactorsOf33
+yarn move-files KnowFactorsOf33
 ```
 
 **If you haven't started the front-end from Quickstart Section:**
