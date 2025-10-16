@@ -163,7 +163,6 @@ This command creates a build folder (if doesn't exist) inside circuit directory 
 
 - `KnowFactorsOf33.sym` : it's a symbols file required for debugging or for printing the constraint system in an annotated mode.
 
-You will get an error if the file name is `KnowFactorsOf33.circom` .
 
 ## Computing our witness
 
@@ -176,7 +175,7 @@ We need to create a file named `input.json` containing the inputs written in the
 We use strings instead of numbers because JavaScript does not work accurately with integers larger than $2^{53}$.
 
 ```text
-{"a": "3", "b": "11", "c": "33"}
+{"a": "3", "b": "11"}
 ```
 
 Now, we calculate the witness and generate a binary file `witness.wtns` containing it in a format accepted by `snarkjs` (`snarkjs` is a npm package that contains code to generate and validate ZK proofs from the artifacts produced by `circom`) , our scripts are using `snarkjs` under the hood .
